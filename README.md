@@ -1,3 +1,2 @@
 # yangbaoyuan.github.io
-test
-[进入](./index.html)
+[点击进入网页](./index.html)
