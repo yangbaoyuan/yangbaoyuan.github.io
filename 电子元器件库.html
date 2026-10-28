@@ -4,10 +4,22 @@
 <p>大道至简，能用基础器件实现就不用集成度高的。没必要在选型和熟悉特定芯片特性上浪费时间。</p>
 <p>专用集成电路芯片缺点：不灵活、费时。选型、控制等。</p>
 <h2>分立器件</h2>
-<p>电阻--功率。</p>
-<p>电容--耐压。1mf目前只发现电解电容</p>
-<p>电感--电流上限。10nh开始为高频电感</p>
-<p>二极管--1N4007、UF4007、RHRG30120。</p>
+<h3>电阻</h3>
+<p>参数：阻值、功率。</p>
+<p>常用阻值范围：10mohm-1Gohm</p>
+<p>极小阻值：？</p>
+<p>极大阻值：？</p>
+<h3>电容</h3>
+<p>参数：容值、耐压。</p>
+<p>交流电容常用容值范围：1pf-100uf。1mf目前只发现电解电容</p>
+<p>极小容值：两根线平行，1cm约0.1pf-1pf</p>
+<p>极大容值：？</p>
+<p>极大耐压：电极用铝箔锅贴，绝缘层用宽胶带，长度差不多近1米，然后卷起来。击穿距离最大约5mm，换算到电压约10KV，是从两侧击穿的，因为宽胶带宽度有限。</p>
+<h3>电感</h3>
+<p>参数：感值、电流上限。</p>
+<p>常用感值范围：100nH-100mH。10nh开始为高频电感</p>
+<h3>二极管</h3>
+<p>1N4007、UF4007、RHRG30120。</p>
 <h3>晶体管</h3>
 <p>双极型晶体管（BJT，通常简称三极管）</p>
 <p>NPN型：8050</p>
@@ -19,6 +31,8 @@
 <p>P沟道:AO3401</p>
 <p>项目  双极型晶体管（BJT）  场效应管（FET）</p>
 <p>导电载流子  电子+空穴（双极）  电子或空穴（单极）</p>
+<h2>电子管</h2>
+<p>6Z4-J: 二极管</p>
 <h2>运算放大器</h2>
 <p>参数：</p>
 <p>增益带宽积</p>
@@ -28,7 +42,12 @@
 <p>LMV321ILT 丝印 K177</p>
 <h2>逻辑门</h2>
 <p>分立器件实现逻辑门：（避免同一个集成电路未使用到的门，而且更灵活）</p>
-<p><img alt="分立器件实现逻辑门" src="./电子元器件库_逻辑门.bmp" /></p>
+<p>与或非门可用分立器件实现：</p>
+<p>extern 《数字电路与逻辑设计》-3.5CMOS电路</p>
+<p>注：
+与门=与非门+非门；或门=或非门+非门。
+所有NMOSFET都是AO3400,所有PMOSFET都是AO3401,串电阻10ohm防直通，输入端不能悬空或为半高电平否则电阻发热严重。
+衬底箭头接的位置：理想接源极，接高低为在集成电路中出于隔离或布线需要，保证衬底与源/漏之间的PN结反偏，但体效应Vth增大，对数字电路通常影响不大。</p>
 <p>与或非门不独立，输入都过非然后与然后非等价于或门。</p>
 <h2>AD转换</h2>
 <p>dac和adc是模拟电路和数字电路之间的桥梁。</p>
@@ -47,40 +66,59 @@
 <p>dac模式：短接J4，data_in输入，J2-pin2输出。</p>
 <p>adc模式：data_in输入dac值，ADC_in为要转换的电压输入，J2-pin2反馈回控制器。</p>
 <h3>软件</h3>
-<p>```
-unsigned char adc_fb()
+<p>```</p>
+<p>unsigned char adc_fb()</p>
+<p>{</p>
+<pre><code>return (GPIOB-&gt;IDR &amp; GPIO_IDR_IDR1);
+</code></pre>
+<p>}</p>
+<p>void dac(unsigned char dac_data)</p>
+<p>{</p>
+<pre><code>int buffer;
+
+buffer = GPIOA-&gt;ODR;
+
+buffer = GPIOA-&gt;ODR &amp; (~0xff);
+
+buffer = buffer | dac_data;
+
+GPIOA-&gt;ODR = buffer;
+</code></pre>
+<p>}</p>
+<p>unsigned char adc()</p>
+<p>{</p>
+<pre><code>unsigned char i;
+
+unsigned char value = 0x80;
+
+unsigned int j;
+
+FILE *f;
+
+for(i=0; i&lt;8; i++)
+
 {
-    return (GPIOB-&gt;IDR &amp; GPIO_IDR_IDR1);
-}</p>
-<p>void dac(unsigned char dac_data)
-{
-    int buffer;
-    buffer = GPIOA-&gt;ODR;
-    buffer = GPIOA-&gt;ODR &amp; (~0xff);
-    buffer = buffer | dac_data;
-    GPIOA-&gt;ODR = buffer;
-}</p>
-<p>unsigned char adc()
-{
-    unsigned char i;
-    unsigned char value = 0x80;
-    unsigned int j;
-    FILE *f;</p>
-<pre><code>for(i=0; i&lt;8; i++)
-{
+
     dac(value);
+
     for(j=0;j&lt;1000;j++);//delay
 
     if(adc_fb())
+
     {
+
         value = value &amp; ~(1 &lt;&lt; (7 - i));
+
     }
+
     if(i &lt; 7) value = value | (1 &lt;&lt; (6 - i));
+
 }
+
 return value;
 </code></pre>
-<p>}
-```</p>
+<p>}</p>
+<p>```</p>
 <h2>存储</h2>
 <p>eeprom：AT24C02</p>
 <p>nor flash：W25Q128</p>
@@ -181,3 +219,5 @@ return value;
 <p>非门-74HC04</p>
 <h2>其它</h2>
 <p>其它文件夹</p>
+<p>压敏电阻</p>
+<p>TVS</p>
