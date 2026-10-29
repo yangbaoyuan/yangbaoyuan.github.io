@@ -1,0 +1,58 @@
+<h1>超声波测量</h1>
+<h2>概述</h2>
+<p>超声波换能器在液体中发射超声波并接收回波。（空气中同理）</p>
+<p>超声波换能器原理是(正/逆)压电效应。</p>
+<h2>电路</h2>
+<p>电路原理：mcu_pluse发低电平脉冲 - buck-boost电路升压 - 超声波换能器 - 运算放大器比较电压检出回波 - 电阻和mcu控nmos过滤发送阶段波形 - 模拟浮栅晶体管把超声波传输时间转为高电平 - mcu定时计数 ； </p>
+<p>超声波换能器型号：NU1ME21TR-1</p>
+<p>电路图：
+<img alt="电路图" src="./超声波测量_电路图.bmp" /></p>
+<p>波形图：
+<img alt="波形图" src="./超声波测量_传播延时.JPG" /></p>
+<h2>软件</h2>
+<p>```</p>
+<p>void ultrasound_pulse()</p>
+<p>{</p>
+<pre><code>unsigned int i;
+
+
+GPIOB-&gt;ODR |= GPIO_ODR_ODR9;//modify lock
+
+for(i=0;i&lt;100;i++);//take effect
+
+
+GPIOB-&gt;ODR &amp;= ~GPIO_ODR_ODR8;//pulse
+
+GPIOB-&gt;ODR |= GPIO_ODR_ODR8;
+
+
+for(i=0;i&lt;500;i++);//modify wait    time need test !
+
+
+GPIOB-&gt;ODR &amp;= ~GPIO_ODR_ODR9;//modify unlock
+
+
+for(i=0;i&lt;10000;i++);//wait echo
+</code></pre>
+<p>}</p>
+<p>unsigned int tof_get()</p>
+<p>{</p>
+<pre><code>unsigned int time_start, time_stop, time_spread;
+
+
+time_start = TIM2-&gt;CNT;
+
+ultrasound_pulse();
+
+time_stop = TIM2-&gt;CNT;
+
+if(time_stop &gt; time_start)    time_spread = (time_stop - time_start);
+
+else    time_spread = 0x10000 - (time_start - time_stop);
+
+
+return (time_spread - (int)(1.43*72));//transfer modify us
+</code></pre>
+<p>}</p>
+<p>```</p>
+<h2>其它</h2>
